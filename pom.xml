@@ -16,6 +16,14 @@
     <name>rest-service-demo</name>
 	<description>Demo Project for Spring Boot</description>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
+		<native.maven.plugin.version>0.9.28</native.maven.plugin.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -48,56 +56,76 @@
     </dependencies>
 
     <build>
+        <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                    <configuration>
+                        <archive>
+                            <manifest>
+                                <mainClass>${exec.mainClass}</mainClass>
+                            </manifest>
+                        </archive>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            <plugin>
-                <groupId>org.graalvm.buildtools</groupId>
-                <artifactId>native-maven-plugin</artifactId>
-                <version>0.10.0</version>
-                <configuration>
-                    <imageName>${project.artifactId}</imageName>
-                    <mainClass>${exec.mainClass}</mainClass>
-                    <buildArgs>
-                        <!-- Quick build mode is enabled  -->
-                        <buildArg>-Ob</buildArg>
-                        <!-- G1 is supported on Linux only, comment out next line if on another platform -->
-                        <buildArg>--gc=G1</buildArg>
-                        <!-- Enable JFR support -->
-                        <buildArg>--enable-monitoring=jfr</buildArg>
-                        <!-- Show exception stack traces for exceptions during image building -->
-                        <buildArg>-H:+ReportExceptionStackTraces</buildArg>
-                    </buildArgs>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.0.2</version>
-                <executions>
-                    <execution>
-                        <id>copy-agent-config</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <!-- The tracing agent config needs to be placed here to be picked up
-                                      by the native-image tool -->
-                            <outputDirectory>src/main/resources/META-INF/native-image</outputDirectory>
-                            <resources>
-                                <resource>
-                                     <!-- The location that the native build tools will write the tracing agent
-                                                 config out to -->
-                                    <directory>${basedir}/target/native/agent-output/test</directory>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+			<build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native.maven.plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                            <execution>
+                                <id>test-native</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>${project.artifactId}</imageName>
+                            <mainClass>${exec.mainClass}</mainClass>
+                            <buildArgs>
+                                <!-- Quick build mode is enabled  -->
+                                <buildArg>-Ob</buildArg>
+                                <!-- G1 is supported on Linux only, comment out next line if on another platform -->
+                                <buildArg>--gc=G1</buildArg>
+                                <!-- Enable JFR support -->
+                                <buildArg>--enable-monitoring=jfr</buildArg>
+                                <!-- Show exception stack traces for exceptions during image building -->
+                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>
 
