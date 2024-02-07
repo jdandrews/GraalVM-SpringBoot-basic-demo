@@ -17,11 +17,12 @@
 	<description>Demo Project for Spring Boot</description>
 
     <properties>
+        <start-class>com.example.restservice.RestServiceApplication</start-class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
-		<native.maven.plugin.version>0.9.28</native.maven.plugin.version>
+        <native.maven.plugin.version>0.9.28</native.maven.plugin.version>
     </properties>
 
     <dependencies>
@@ -57,30 +58,101 @@
 
     <build>
 	<plugins>
-        <plugin>
-            <groupId>org.graalvm.buildtools</groupId>
-            <artifactId>native-maven-plugin</artifactId>
-			<version>${native.maven.plugin.version}</version>
-            <configuration>
-                <imageName>${project.artifactId}</imageName>
-                <mainClass>${exec.mainClass}</mainClass>
-                <buildArgs>
-                    <!-- Quick build mode is enabled  -->
-                    <buildArg>-Ob</buildArg>
-                    <!-- G1 is supported on Linux only, comment out next line if on another platform -->
-                    <buildArg>--gc=G1</buildArg>
-                    <!-- Enable JFR support -->
-                    <buildArg>--enable-monitoring=jfr</buildArg>
-                    <!-- Show exception stack traces for exceptions during image building -->
-                    <buildArg>-H:+ReportExceptionStackTraces</buildArg>
-                </buildArgs>
-            </configuration>
-        </plugin>
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <version>${native.maven.plugin.version}</version>
+                <configuration>
+                    <imageName>${project.artifactId}</imageName>
+                    <mainClass>${exec.mainClass}</mainClass>
+                    <buildArgs>
+                        <!-- Quick build mode is enabled  -->
+                        <buildArg>-Ob</buildArg>
+                        <!-- G1 is supported on Linux only, comment out next line if on another platform -->
+                        <buildArg>--gc=G1</buildArg>
+                        <!-- Enable JFR support -->
+                        <buildArg>--enable-monitoring=jfr</buildArg>
+                        <!-- Show exception stack traces for exceptions during image building -->
+                        <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                    </buildArgs>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Create and instrumented native executable and run it BEFORE building the PGO version below -->
+        <profile>
+            <id>pgo-inst</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+			<version>${native.maven.plugin.version}</version>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <quickBuild>true</quickBuild>
+                            <imageName>rest-service-demo-pgoinst</imageName>
+                            <!-- <mainClass>${exec.mainClass}</mainClass> -->
+                            <buildArgs combine.children="append">
+                                <arg>--pgo-instrument</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+            
+        <!-- Create the PGO version using the generated instrumented data above -->
+        <profile>
+            <id>pgo</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+			<version>${native.maven.plugin.version}</version>
+                        <configuration>
+                            <verbose>true</verbose>
+                            <quickBuild>true</quickBuild>
+                            <imageName>rest-service-demo-pgo</imageName>
+                            <buildArgs combine.children="append">
+                                <arg>--pgo=${project.basedir}/default.iprof</arg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+            
+        <!-- Create a static version -->
+        <profile>
+            <id>static</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+			<version>${native.maven.plugin.version}</version>
+                        <configuration>
+                            <verbose>true</verbose>
+			    <quickBuild>true</quickBuild>
+                            <imageName>rest-service-demo-static</imageName>
+			    <!-- <mainClass>${exec.mainClass}</mainClass> -->
+                            <buildArgs>
+                                <buildArg>--static</buildArg>
+                                <buildArg>--libc=musl</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
 
