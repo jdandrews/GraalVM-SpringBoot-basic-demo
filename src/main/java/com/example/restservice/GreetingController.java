@@ -20,7 +20,7 @@ public class GreetingController {
     @GetMapping("/iterate")
     public static String countUppers(@RequestParam(value = "strings",
             defaultValue = "Now is the Time for All good Men to Come to the aid of their party!") String sentence,
-            @RequestParam(value="repeats", defaultValue = "10_000_000") int repeats) {
+            @RequestParam(value="repeats", defaultValue = "10000000") String repeats) {
         int iterations = 1;
         int outerLoopRepeats = Integer.valueOf(repeats);
         StringBuilder result = new StringBuilder("iterations:\n");
