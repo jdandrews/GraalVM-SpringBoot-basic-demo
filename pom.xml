@@ -56,76 +56,31 @@
     </dependencies>
 
     <build>
-        <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>${maven-jar-plugin.version}</version>
-                    <configuration>
-                        <archive>
-                            <manifest>
-                                <mainClass>${exec.mainClass}</mainClass>
-                            </manifest>
-                        </archive>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-
-        <plugins>
+	<plugins>
+        <plugin>
+            <groupId>org.graalvm.buildtools</groupId>
+            <artifactId>native-maven-plugin</artifactId>
+			<version>${native.maven.plugin.version}</version>
+            <configuration>
+                <imageName>${project.artifactId}</imageName>
+                <mainClass>${exec.mainClass}</mainClass>
+                <buildArgs>
+                    <!-- Quick build mode is enabled  -->
+                    <buildArg>-Ob</buildArg>
+                    <!-- G1 is supported on Linux only, comment out next line if on another platform -->
+                    <buildArg>--gc=G1</buildArg>
+                    <!-- Enable JFR support -->
+                    <buildArg>--enable-monitoring=jfr</buildArg>
+                    <!-- Show exception stack traces for exceptions during image building -->
+                    <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                </buildArgs>
+            </configuration>
+        </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>native</id>
-			<build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.graalvm.buildtools</groupId>
-                        <artifactId>native-maven-plugin</artifactId>
-                        <version>${native.maven.plugin.version}</version>
-                        <extensions>true</extensions>
-                        <executions>
-                            <execution>
-                                <id>build-native</id>
-                                <goals>
-                                    <goal>compile-no-fork</goal>
-                                </goals>
-                                <phase>package</phase>
-                            </execution>
-                            <execution>
-                                <id>test-native</id>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <phase>test</phase>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <imageName>${project.artifactId}</imageName>
-                            <mainClass>${exec.mainClass}</mainClass>
-                            <buildArgs>
-                                <!-- Quick build mode is enabled  -->
-                                <buildArg>-Ob</buildArg>
-                                <!-- G1 is supported on Linux only, comment out next line if on another platform -->
-                                <buildArg>--gc=G1</buildArg>
-                                <!-- Enable JFR support -->
-                                <buildArg>--enable-monitoring=jfr</buildArg>
-                                <!-- Show exception stack traces for exceptions during image building -->
-                                <buildArg>-H:+ReportExceptionStackTraces</buildArg>
-                            </buildArgs>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
 </project>
 
